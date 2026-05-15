@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -15,16 +16,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/auth"
+	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/billing"
 	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/dns"
 	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/smtp"
 	"github.com/redis/go-redis/v9"
-	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/auth"
-    "github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/billing"
-    "io"
+	"github.com/stripe/stripe-go/v76"
 )
 
 var rdb *redis.Client
-billing.Init(os.Getenv("STRIPE_SECRET_KEY"))
 var emailRegex = regexp.MustCompile(`[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}`)
 
 func main() {
@@ -34,9 +34,52 @@ func main() {
 		Addr: os.Getenv("REDIS_URL"),
 	})
 
+	billing.Init(os.Getenv("STRIPE_SECRET_KEY"))
+
 	r := gin.Default()
-	// Public signup - returns API key
-r.POST("/api/auth/signup", func(c *gin.Context) {
+
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-API-Key")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	})
+
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+
+	// Public routes
+	r.POST("/api/auth/signup", signupHandler)
+	r.POST("/api/stripe/webhook", webhookHandler)
+	r.POST("/api/tools/extract", extractHandler)
+	r.GET("/api/tools/dns/:domain", dnsHandler)
+
+	// Protected routes
+	protected := r.Group("/")
+	protected.Use(auth.AuthMiddleware(rdb))
+	{
+		protected.GET("/api/usage", usageHandler)
+		protected.POST("/api/billing/checkout", checkoutHandler)
+		protected.POST("/api/tools/clean", cleanHandler)
+		protected.POST("/api/bulk/upload", bulkUploadHandler)
+		protected.GET("/api/bulk/status/:id", bulkStatusHandler)
+		protected.GET("/api/bulk/download/:id", bulkDownloadHandler)
+	}
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("API running on :%s", port)
+	r.Run(":" + port)
+}
+
+func signupHandler(c *gin.Context) {
 	email := c.PostForm("email")
 	if email == "" {
 		c.JSON(400, gin.H{"error": "email required"})
@@ -44,12 +87,33 @@ r.POST("/api/auth/signup", func(c *gin.Context) {
 	}
 	key := auth.GenerateAPIKey()
 	ctx := context.Background()
-	rdb.Set(ctx, "key:"+key, email, 0) // 0 = no expiry
+	rdb.Set(ctx, "key:"+key, email, 0)
 	rdb.HSet(ctx, "user:"+email, "plan", "free", "created", time.Now().Unix())
 	c.JSON(200, gin.H{"api_key": key})
-})
-	// Create checkout
-r.POST("/api/billing/checkout", auth.AuthMiddleware(rdb), func(c *gin.Context) {
+}
+
+func usageHandler(c *gin.Context) {
+	userID := c.GetString("user_id")
+	ctx := context.Background()
+	plan, _ := rdb.HGet(ctx, "user:"+userID, "plan").Result()
+	cleanUsed, _ := rdb.Get(ctx, "rl:clean:"+userID).Int()
+	extractUsed, _ := rdb.Get(ctx, "rl:extract:"+userID).Int()
+	
+	cleanLimit := 100
+	if plan == "pro" {
+		cleanLimit = 10000
+	}
+	
+	c.JSON(200, gin.H{
+		"plan": plan,
+		"clean_used": cleanUsed,
+		"clean_limit": cleanLimit,
+		"extract_used": extractUsed,
+		"extract_limit": 5000,
+	})
+}
+
+func checkoutHandler(c *gin.Context) {
 	userID := c.GetString("user_id")
 	sess, err := billing.CreateCheckoutSession(
 		userID,
@@ -62,10 +126,9 @@ r.POST("/api/billing/checkout", auth.AuthMiddleware(rdb), func(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"url": sess.URL})
-})
+}
 
-// Stripe webhook
-r.POST("/api/stripe/webhook", func(c *gin.Context) {
+func webhookHandler(c *gin.Context) {
 	payload, _ := io.ReadAll(c.Request.Body)
 	sig := c.GetHeader("Stripe-Signature")
 	event, err := billing.VerifyWebhook(payload, sig, os.Getenv("STRIPE_WEBHOOK_SECRET"))
@@ -82,79 +145,6 @@ r.POST("/api/stripe/webhook", func(c *gin.Context) {
 		rdb.HSet(ctx, "user:"+userID, "plan", "pro")
 	}
 	c.JSON(200, gin.H{"received": true})
-})
-
-// Usage endpoint
-r.GET("/api/usage", auth.AuthMiddleware(rdb), func(c *gin.Context) {
-	userID := c.GetString("user_id")
-	ctx := context.Background()
-	cleanUsed, _ := rdb.Get(ctx, "rl:clean:"+userID).Int()
-	extractUsed, _ := rdb.Get(ctx, "rl:extract:"+userID).Int()
-	c.JSON(200, gin.H{
-		"plan": "free",
-		"clean_used": cleanUsed,
-		"clean_limit": 100,
-		"extract_used": extractUsed,
-		"extract_limit": 5000,
-	})
-})
-func cleanHandler(c *gin.Context) {
-	userID := c.GetString("user_id")
-	ctx := context.Background()
-	plan, _ := rdb.HGet(ctx, "user:"+userID, "plan").Result()
-	
-	limit := 100
-	if plan == "pro" {
-		limit = 10000
-	}
-
-	var req CleanReq
-	c.BindJSON(&req)
-	
-	key := "rl:clean:" + userID
-	count, _ := rdb.Get(ctx, key).Int()
-	if count+len(req.Emails) > limit {
-		c.JSON(429, gin.H{"error": fmt.Sprintf("Daily limit %d exceeded", limit)})
-		return
-	}
-	//... rest same
-}
-// Protect existing routes
-protected := r.Group("/")
-protected.Use(auth.AuthMiddleware(rdb))
-{
-	protected.POST("/api/tools/clean", cleanHandler)
-	protected.POST("/api/bulk/upload", bulkUploadHandler)
-}
-
-	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
-	})
-
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
-
-	r.POST("/api/tools/extract", extractHandler)
-	r.POST("/api/tools/clean", cleanHandler)
-	r.POST("/api/bulk/upload", bulkUploadHandler)
-	r.GET("/api/bulk/status/:id", bulkStatusHandler)
-	r.GET("/api/bulk/download/:id", bulkDownloadHandler)
-	r.GET("/api/tools/dns/:domain", dnsHandler)
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	log.Printf("API running on :%s", port)
-	r.Run(":" + port)
 }
 
 type ExtractReq struct {
@@ -207,19 +197,22 @@ type CleanReq struct {
 }
 
 func cleanHandler(c *gin.Context) {
-	var req CleanReq
-	if err := c.BindJSON(&req); err!= nil {
-		c.JSON(400, gin.H{"error": "invalid json"})
-		return
+	userID := c.GetString("user_id")
+	ctx := context.Background()
+	plan, _ := rdb.HGet(ctx, "user:"+userID, "plan").Result()
+	
+	limit := 100
+	if plan == "pro" {
+		limit = 10000
 	}
 
-	ip := c.ClientIP()
-	key := "rl:clean:" + ip
-	ctx := context.Background()
-
+	var req CleanReq
+	c.BindJSON(&req)
+	
+	key := "rl:clean:" + userID
 	count, _ := rdb.Get(ctx, key).Int()
-	if count+len(req.Emails) > 100 {
-		c.JSON(429, gin.H{"error": "Daily limit 100 full verifications exceeded"})
+	if count+len(req.Emails) > limit {
+		c.JSON(429, gin.H{"error": fmt.Sprintf("Daily limit %d exceeded", limit)})
 		return
 	}
 	rdb.IncrBy(ctx, key, int64(len(req.Emails)))
