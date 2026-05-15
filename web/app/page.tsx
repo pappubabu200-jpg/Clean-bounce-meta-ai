@@ -284,3 +284,33 @@ export default function Home() {
 
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.5 }} className="md:col-span-12 feature-card bg-gradient-to-br from-slate-50 to-gray-50 dark:from-dark-800 dark:to-dark-700 border border-gray-200 dark:border-dark-700 rounded-3xl p-12 flex items-center gap-12 flex-col md:flex-row">
          
+<section id="pricing" className="max-w-7xl mx-auto px-4 py-24">
+  <h2 className="text-5xl font-extrabold text-center mb-16">Simple pricing</h2>
+  <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+    
+    <div className="border border-gray-200 rounded-2xl p-8">
+      <h3 className="text-2xl font-bold">Free</h3>
+      <div className="text-5xl font-extrabold mt-4">$0</div>
+      <ul className="mt-8 space-y-3">
+        <li>✓ 100 verifies/day</li>
+        <li>✓ All free tools</li>
+        <li>✓ 10x refund guarantee</li>
+      </ul>
+      <button className="w-full mt-8 py-3 rounded-xl bg-gray-900 text-white font-bold">Start Free</button>
+    </div>
+
+    <div className="border-2 border-indigo-600 rounded-2xl p-8 relative">
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-4 py-1 rounded-full text-sm font-bold">Most Popular</div>
+      <h3 className="text-2xl font-bold">Starter</h3>
+      <div className="text-5xl font-extrabold mt-4">$19<span className="text-lg text-gray-500">/mo</span></div>
+      <ul className="mt-8 space-y-3">
+        <li>✓ 1,000 verifies/day</li>
+        <li>✓ Full API access</li>
+        <li>✓ Priority queue</li>
+        <li>✓ Remove branding</li>
+      </ul>
+      <button className="w-full mt-8 py-3 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white font-bold">Upgrade</button>
+    </div>
+
+  </div>
+</section>
