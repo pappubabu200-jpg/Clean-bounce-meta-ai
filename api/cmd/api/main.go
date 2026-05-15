@@ -18,9 +18,13 @@ import (
 	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/dns"
 	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/smtp"
 	"github.com/redis/go-redis/v9"
+	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/auth"
+    "github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/billing"
+    "io"
 )
 
 var rdb *redis.Client
+billing.Init(os.Getenv("STRIPE_SECRET_KEY"))
 var emailRegex = regexp.MustCompile(`[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}`)
 
 func main() {
@@ -44,6 +48,41 @@ r.POST("/api/auth/signup", func(c *gin.Context) {
 	rdb.HSet(ctx, "user:"+email, "plan", "free", "created", time.Now().Unix())
 	c.JSON(200, gin.H{"api_key": key})
 })
+	// Create checkout
+r.POST("/api/billing/checkout", auth.AuthMiddleware(rdb), func(c *gin.Context) {
+	userID := c.GetString("user_id")
+	sess, err := billing.CreateCheckoutSession(
+		userID,
+		os.Getenv("STRIPE_PRICE_ID"),
+		"http://localhost:3000/dashboard?success=1",
+		"http://localhost:3000/pricing",
+	)
+	if err!= nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"url": sess.URL})
+})
+
+// Stripe webhook
+r.POST("/api/stripe/webhook", func(c *gin.Context) {
+	payload, _ := io.ReadAll(c.Request.Body)
+	sig := c.GetHeader("Stripe-Signature")
+	event, err := billing.VerifyWebhook(payload, sig, os.Getenv("STRIPE_WEBHOOK_SECRET"))
+	if err!= nil {
+		c.JSON(400, gin.H{"error": "invalid signature"})
+		return
+	}
+
+	if event.Type == "checkout.session.completed" {
+		var sess stripe.CheckoutSession
+		json.Unmarshal(event.Data.Raw, &sess)
+		userID := sess.Metadata["user_id"]
+		ctx := context.Background()
+		rdb.HSet(ctx, "user:"+userID, "plan", "pro")
+	}
+	c.JSON(200, gin.H{"received": true})
+})
 
 // Usage endpoint
 r.GET("/api/usage", auth.AuthMiddleware(rdb), func(c *gin.Context) {
@@ -59,7 +98,27 @@ r.GET("/api/usage", auth.AuthMiddleware(rdb), func(c *gin.Context) {
 		"extract_limit": 5000,
 	})
 })
+func cleanHandler(c *gin.Context) {
+	userID := c.GetString("user_id")
+	ctx := context.Background()
+	plan, _ := rdb.HGet(ctx, "user:"+userID, "plan").Result()
+	
+	limit := 100
+	if plan == "pro" {
+		limit = 10000
+	}
 
+	var req CleanReq
+	c.BindJSON(&req)
+	
+	key := "rl:clean:" + userID
+	count, _ := rdb.Get(ctx, key).Int()
+	if count+len(req.Emails) > limit {
+		c.JSON(429, gin.H{"error": fmt.Sprintf("Daily limit %d exceeded", limit)})
+		return
+	}
+	//... rest same
+}
 // Protect existing routes
 protected := r.Group("/")
 protected.Use(auth.AuthMiddleware(rdb))
