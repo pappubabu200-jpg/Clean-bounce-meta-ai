@@ -160,3 +160,7 @@ func min(a, b int) int {
 	}
 	return b
 }
+// Add these 3 lines in main() after other routes
+r.POST("/api/bulk/upload", bulkUploadHandler)
+r.GET("/api/bulk/status/:id", bulkStatusHandler)
+r.GET("/api/bulk/download/:id", bulkDownloadHandler)
