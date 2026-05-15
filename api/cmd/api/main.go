@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/smtp"
 	"context"
 	"log"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/smtp"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -20,13 +20,13 @@ var emailRegex = regexp.MustCompile(`[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z
 
 func main() {
 	godotenv.Load()
-	
+
 	rdb = redis.NewClient(&redis.Options{
 		Addr: os.Getenv("REDIS_URL"),
 	})
 
 	r := gin.Default()
-	
+
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
@@ -86,7 +86,7 @@ func extractHandler(c *gin.Context) {
 	for _, e := range matches {
 		unique[strings.ToLower(e)] = true
 	}
-	
+
 	var emails []string
 	for e := range unique {
 		emails = append(emails, e)
@@ -112,29 +112,32 @@ func cleanHandler(c *gin.Context) {
 	ip := c.ClientIP()
 	key := "rl:clean:" + ip
 	ctx := context.Background()
-	
+
 	count, _ := rdb.Get(ctx, key).Int()
-	if count+len(req.Emails) > 500 {
-		c.JSON(429, gin.H{"error": "Daily limit 500 emails exceeded"})
+	if count+len(req.Emails) > 100 {
+		c.JSON(429, gin.H{"error": "Daily limit 100 full verifications exceeded"})
 		return
 	}
 	rdb.IncrBy(ctx, key, int64(len(req.Emails)))
 	rdb.Expire(ctx, key, 24*time.Hour)
 
-	var valid, invalid []string
+	results := []smtp.Result{}
+	validCount := 0
+
 	for _, e := range req.Emails {
-		if emailRegex.MatchString(e) {
-			valid = append(valid, e)
-		} else {
-			invalid = append(invalid, e)
+		res := smtp.Verify(e)
+		results = append(results, res)
+		if res.Valid {
+			validCount++
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	c.JSON(200, gin.H{
 		"total": len(req.Emails),
-		"valid": len(valid),
-		"invalid": len(invalid),
-		"sample_invalid": invalid[:min(5, len(invalid))],
+		"valid": validCount,
+		"invalid": len(req.Emails) - validCount,
+		"results": results[:min(20, len(results))],
 	})
 }
 
@@ -145,7 +148,7 @@ func fetchURL(url string) string {
 		return ""
 	}
 	defer resp.Body.Close()
-	
+
 	buf := make([]byte, 1024*100)
 	n, _ := resp.Body.Read(buf)
 	return string(buf[:n])
@@ -156,42 +159,4 @@ func min(a, b int) int {
 		return a
 	}
 	return b
-}
-func cleanHandler(c *gin.Context) {
-	var req CleanReq
-	if err := c.BindJSON(&req); err!= nil {
-		c.JSON(400, gin.H{"error": "invalid json"})
-		return
-	}
-
-	ip := c.ClientIP()
-	key := "rl:clean:" + ip
-	ctx := context.Background()
-	
-	count, _ := rdb.Get(ctx, key).Int()
-	if count+len(req.Emails) > 100 { // Pro: 100 full verifies/day free
-		c.JSON(429, gin.H{"error": "Daily limit 100 full verifications exceeded"})
-		return
-	}
-	rdb.IncrBy(ctx, key, int64(len(req.Emails)))
-	rdb.Expire(ctx, key, 24*time.Hour)
-
-	results := []smtp.Result{}
-	validCount := 0
-	
-	for _, e := range req.Emails {
-		res := smtp.Verify(e)
-		results = append(results, res)
-		if res.Valid {
-			validCount++
-		}
-		time.Sleep(100 * time.Millisecond) // Don't hammer servers
-	}
-
-	c.JSON(200, gin.H{
-		"total": len(req.Emails),
-		"valid": validCount,
-		"invalid": len(req.Emails) - validCount,
-		"results": results[:min(20, len(results))], // Show first 20
-	})
 }
