@@ -1,4 +1,4 @@
-module github.com/pappubabu200/cleanbounce/api
+module github.com/pappubabu200-jpg/cleanbounce/api
 
 go 1.22
 
