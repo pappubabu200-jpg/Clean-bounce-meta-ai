@@ -260,3 +260,8 @@ func bulkDownloadHandler(c *gin.Context) {
 	}
 	writer.Flush()
 }
+func dnsHandler(c *gin.Context) {
+	domain := c.Param("domain")
+	res := dns.Check(domain)
+	c.JSON(200, res)
+}
