@@ -62,11 +62,39 @@ export default function BulkVerifier() {
           <div>Valid: {status.valid || 0}</div>
 
           {status.status === 'done' && (
-            <a
-              href={`${API_URL}/api/bulk/download/${jobId}`}
-              style={{display: 'inline-block', marginTop: 12, background: '#10b981', color: '#000', padding: '8px 16px', borderRadius: 6, textDecoration: 'none', fontWeight: 600}}
-            >
-              Download Results CSV
+  <div style={{display: 'flex', gap: 12, marginTop: 12}}>
+    <a
+      href={`${API_URL}/api/bulk/download/${jobId}`}
+      style={{background: '#10b981', color: '#000', padding: '8px 16px', borderRadius: 6, textDecoration: 'none', fontWeight: 600}}
+    >
+      Download Results CSV
+    </a>
+    
+    <button onClick={() => {
+      const email = prompt('Which email bounced after sending?')
+      if (!email) return
+      fetch(`${API_URL}/api/report/bounce`, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': localStorage.getItem('api_key') || '',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({email, job_id: jobId})
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.refunded) {
+          alert(`Refunded ${d.refunded} credits. We marked it valid but it bounced.`)
+        } else {
+          alert(d.error || 'Could not refund. Email was not marked valid by us.')
+        }
+      })
+    }}
+    style={{background: '#f43f5e', color: '#fff', border: 0, padding: '8px 16px', borderRadius: 6, fontWeight: 600, cursor: 'pointer'}}>
+      Report Bounce – Get 10x Refund
+    </button>
+  </div>
+)}
             </a>
           )}
         </div>
