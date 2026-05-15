@@ -69,6 +69,7 @@ func main() {
 		protected.POST("/api/bulk/upload", bulkUploadHandler)
 		protected.GET("/api/bulk/status/:id", bulkStatusHandler)
 		protected.GET("/api/bulk/download/:id", bulkDownloadHandler)
+		protected.POST("/api/report/bounce", reportBounceHandler)
 	}
 
 	port := os.Getenv("PORT")
@@ -205,6 +206,13 @@ func cleanHandler(c *gin.Context) {
 	if plan == "pro" {
 		limit = 10000
 	}
+	// In cleanHandler, after limit check:
+credits, _ := rdb.HGet(ctx, "user:"+userID, "credits").Int()
+if credits < len(req.Emails) {
+	c.JSON(402, gin.H{"error": "insufficient credits"})
+	return
+}
+rdb.HIncrBy(ctx, "user:"+userID, "credits", -len(req.Emails))
 
 	var req CleanReq
 	c.BindJSON(&req)
@@ -279,6 +287,28 @@ func bulkUploadHandler(c *gin.Context) {
 	go processJob(jobID)
 	c.JSON(200, gin.H{"job_id": jobID, "total": len(emails)})
 }
+type BounceReport struct {
+	Email string `json:"email"`
+	JobID string `json:"job_id"`
+}
+
+func reportBounceHandler(c *gin.Context) {
+	userID := c.GetString("user_id")
+	var req BounceReport
+	c.BindJSON(&req)
+	
+	ctx := context.Background()
+	// Check if we marked it valid in that job
+	key := "result:" + req.JobID
+	data, _ := rdb.HGet(ctx, key, req.Email).Result()
+	if strings.HasPrefix(data, "true|") {
+		// We said valid but it bounced = refund 10 credits
+		rdb.HIncrBy(ctx, "user:"+userID, "credits", 10)
+		c.JSON(200, gin.H{"refunded": 10, "reason": "false_positive"})
+		return
+	}
+	c.JSON(400, gin.H{"error": "email not found or was marked invalid"})
+}
 
 func processJob(jobID string) {
 	ctx := context.Background()
@@ -297,6 +327,7 @@ func processJob(jobID string) {
 		time.Sleep(100 * time.Millisecond)
 	}
 	rdb.HSet(ctx, "job:"+jobID, "status", "done")
+	rdb.HSet(ctx, "user:"+email, "credits", 100) // 100 free credits
 }
 
 func bulkStatusHandler(c *gin.Context) {
