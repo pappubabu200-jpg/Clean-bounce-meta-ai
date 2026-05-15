@@ -1,4 +1,4 @@
-module github.com/pappubabu200-jpg/cleanbounce/api
+module github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api
 
 go 1.22
 
