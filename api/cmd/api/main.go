@@ -31,6 +31,42 @@ func main() {
 	})
 
 	r := gin.Default()
+	// Public signup - returns API key
+r.POST("/api/auth/signup", func(c *gin.Context) {
+	email := c.PostForm("email")
+	if email == "" {
+		c.JSON(400, gin.H{"error": "email required"})
+		return
+	}
+	key := auth.GenerateAPIKey()
+	ctx := context.Background()
+	rdb.Set(ctx, "key:"+key, email, 0) // 0 = no expiry
+	rdb.HSet(ctx, "user:"+email, "plan", "free", "created", time.Now().Unix())
+	c.JSON(200, gin.H{"api_key": key})
+})
+
+// Usage endpoint
+r.GET("/api/usage", auth.AuthMiddleware(rdb), func(c *gin.Context) {
+	userID := c.GetString("user_id")
+	ctx := context.Background()
+	cleanUsed, _ := rdb.Get(ctx, "rl:clean:"+userID).Int()
+	extractUsed, _ := rdb.Get(ctx, "rl:extract:"+userID).Int()
+	c.JSON(200, gin.H{
+		"plan": "free",
+		"clean_used": cleanUsed,
+		"clean_limit": 100,
+		"extract_used": extractUsed,
+		"extract_limit": 5000,
+	})
+})
+
+// Protect existing routes
+protected := r.Group("/")
+protected.Use(auth.AuthMiddleware(rdb))
+{
+	protected.POST("/api/tools/clean", cleanHandler)
+	protected.POST("/api/bulk/upload", bulkUploadHandler)
+}
 
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
