@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/csv"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -10,17 +13,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/dns"
 	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/smtp"
 	"github.com/redis/go-redis/v9"
 )
-import (
-	//... existing
-	"encoding/csv"
-	"fmt"
-	"io"
-	"github.com/google/uuid"
-)
+
 var rdb *redis.Client
 var emailRegex = regexp.MustCompile(`[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}`)
 
@@ -50,6 +49,10 @@ func main() {
 
 	r.POST("/api/tools/extract", extractHandler)
 	r.POST("/api/tools/clean", cleanHandler)
+	r.POST("/api/bulk/upload", bulkUploadHandler)
+	r.GET("/api/bulk/status/:id", bulkStatusHandler)
+	r.GET("/api/bulk/download/:id", bulkDownloadHandler)
+	r.GET("/api/tools/dns/:domain", dnsHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -147,32 +150,6 @@ func cleanHandler(c *gin.Context) {
 	})
 }
 
-func fetchURL(url string) string {
-	client := http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get(url)
-	if err!= nil {
-		return ""
-	}
-	defer resp.Body.Close()
-
-	buf := make([]byte, 1024*100)
-	n, _ := resp.Body.Read(buf)
-	return string(buf[:n])
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-// Add these 3 lines in main() after other routes
-r.POST("/api/bulk/upload", bulkUploadHandler)
-r.GET("/api/bulk/status/:id", bulkStatusHandler)
-r.GET("/api/bulk/download/:id", bulkDownloadHandler)
-r.POST("/api/bulk/upload", bulkUploadHandler)
-r.GET("/api/bulk/status/:id", bulkStatusHandler)
-r.GET("/api/bulk/download/:id", bulkDownloadHandler)
 type BulkJob struct {
 	ID string `json:"id"`
 	Status string `json:"status"`
@@ -260,8 +237,29 @@ func bulkDownloadHandler(c *gin.Context) {
 	}
 	writer.Flush()
 }
+
 func dnsHandler(c *gin.Context) {
 	domain := c.Param("domain")
 	res := dns.Check(domain)
 	c.JSON(200, res)
+}
+
+func fetchURL(url string) string {
+	client := http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(url)
+	if err!= nil {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	buf := make([]byte, 1024*100)
+	n, _ := resp.Body.Read(buf)
+	return string(buf[:n])
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
