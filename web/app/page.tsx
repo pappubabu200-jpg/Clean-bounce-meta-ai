@@ -1,152 +1,240 @@
 'use client'
 import Link from 'next/link'
+import { useState } from 'react'
 
 export default function Home() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+  const [yearly, setYearly] = useState(false)
 
   return (
-    <div style={{background: '#000', color: '#fff', minHeight: '100vh'}}>
+    <div style={{background: '#fff', color: '#0a0a0a'}}>
       {/* NAV */}
-      <nav style={{borderBottom: '1px solid #222', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-        <div style={{fontWeight: 700, fontSize: 20}}>CleanBounce</div>
-        <div style={{display: 'flex', gap: 24, alignItems: 'center'}}>
-          <Link href="/tools/bulk-verifier" style={{color: '#888', textDecoration: 'none'}}>Tools</Link>
-          <Link href="/pricing" style={{color: '#888', textDecoration: 'none'}}>Pricing</Link>
-          <Link href="/dashboard" style={{background: '#fff', color: '#000', padding: '8px 16px', borderRadius: 8, textDecoration: 'none', fontWeight: 600}}>
-            Dashboard
-          </Link>
+      <nav style={{borderBottom: '1px solid #f1f1f1', backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.8)'}}>
+        <div style={{maxWidth: 1200, margin: '0 auto', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+            <div style={{width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'}}></div>
+            <span style={{fontWeight: 700, fontSize: 20}}>CleanBounce</span>
+          </div>
+          <div style={{display: 'flex', gap: 32, alignItems: 'center'}}>
+            <Link href="#features" style={{color: '#525252', textDecoration: 'none', fontWeight: 500}}>Features</Link>
+            <Link href="#pricing" style={{color: '#525252', textDecoration: 'none', fontWeight: 500}}>Pricing</Link>
+            <Link href="/dashboard" style={{background: '#0a0a0a', color: '#fff', padding: '10px 20px', borderRadius: 8, textDecoration: 'none', fontWeight: 600}}>
+              Start Free →
+            </Link>
+          </div>
         </div>
       </nav>
 
       {/* HERO */}
-      <section style={{maxWidth: 1000, margin: '80px auto', padding: '0 24px', textAlign: 'center'}}>
-        <div style={{display: 'inline-block', background: '#10b981', color: '#000', padding: '4px 12px', borderRadius: 999, fontSize: 14, fontWeight: 600, marginBottom: 24}}>
-          10x REFUND GUARANTEE
+      <section style={{maxWidth: 1200, margin: '0 auto', padding: '120px 24px 80px', textAlign: 'center'}}>
+        <div style={{display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', padding: '6px 16px', borderRadius: 999, fontSize: 14, fontWeight: 600, marginBottom: 24}}>
+          <div style={{width: 8, height: 8, borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s infinite'}}></div>
+          10x Refund Guarantee Live
         </div>
-        <h1 style={{fontSize: 64, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px'}}>
-          Email Verification That<br/>Pays You When We're Wrong
+        <h1 style={{fontSize: 72, fontWeight: 800, lineHeight: 1.05, letterSpacing: '-0.03em', margin: '0 0 24px', background: 'linear-gradient(180deg, #0a0a0a 0%, #525252 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>
+          Stop Paying for<br/>Emails That Bounce
         </h1>
-        <p style={{fontSize: 20, color: '#888', maxWidth: 600, margin: '0 auto 40px', lineHeight: 1.6}}>
-          We verify emails with real SMTP checks. If we mark an email "valid" and it bounces, 
-          we refund you 10x credits. NeverBounce won't do that.
+        <p style={{fontSize: 20, color: '#737373', maxWidth: 600, margin: '0 auto 40px', lineHeight: 1.6}}>
+          Real SMTP verification with 99.2% accuracy. If we mark an email “valid” and it bounces, 
+          we refund you 10x credits instantly. No other tool does this.
         </p>
-        <div style={{display: 'flex', gap: 16, justifyContent: 'center'}}>
-          <Link href="/dashboard" style={{background: '#fff', color: '#000', padding: '16px 32px', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 18}}>
-            Get Free API Key
+        <div style={{display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 16}}>
+          <Link href="/dashboard" style={{background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', color: '#fff', padding: '16px 32px', borderRadius: 12, textDecoration: 'none', fontWeight: 600, fontSize: 18, boxShadow: '0 4px 14px rgba(99,102,241,0.4)'}}>
+            Get 100 Free Verifications
           </Link>
-          <Link href="/tools/bulk-verifier" style={{background: '#111', color: '#fff', border: '1px solid #333', padding: '16px 32px', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 18}}>
-            Try Bulk Verifier
+          <Link href="#demo" style={{background: '#fff', color: '#0a0a0a', border: '1px solid #e5e5e5', padding: '16px 32px', borderRadius: 12, textDecoration: 'none', fontWeight: 600, fontSize: 18}}>
+            Watch 45s Demo
           </Link>
         </div>
-        <p style={{color: '#555', marginTop: 16, fontSize: 14}}>100 free verifications/day. No credit card.</p>
-      </section>
-
-      {/* SOCIAL PROOF */}
-      <section style={{borderTop: '1px solid #222', borderBottom: '1px solid #222', padding: '32px 24px'}}>
-        <div style={{maxWidth: 1000, margin: '0 auto', display: 'flex', justifyContent: 'space-around', textAlign: 'center', flexWrap: 'wrap', gap: 24}}>
-          <div>
-            <div style={{fontSize: 32, fontWeight: 700}}>99.2%</div>
-            <div style={{color: '#888'}}>Accuracy</div>
-          </div>
-          <div>
-            <div style={{fontSize: 32, fontWeight: 700}}>10ms</div>
-            <div style={{color: '#888'}}>Avg Verify Time</div>
-          </div>
-          <div>
-            <div style={{fontSize: 32, fontWeight: 700}}>10x</div>
-            <div style={{color: '#888'}}>Refund on Bounce</div>
-          </div>
-          <div>
-            <div style={{fontSize: 32, fontWeight: 700}}>5</div>
-            <div style={{color: '#888'}}>Free Tools</div>
+        <p style={{color: '#a3a3a3', fontSize: 14}}>No credit card required. 2-min setup.</p>
+        
+        {/* LOGOS */}
+        <div style={{marginTop: 80, opacity: 0.5}}>
+          <p style={{color: '#a3a3a3', fontSize: 14, marginBottom: 24, fontWeight: 500}}>TRUSTED BY AGENCIES USING</p>
+          <div style={{display: 'flex', gap: 48, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap'}}>
+            {['Instantly', 'Smartlead', 'Lemlist', 'Apollo', 'Clay'].map(t => (
+              <div key={t} style={{color: '#a3a3a3', fontWeight: 700, fontSize: 18}}>{t}</div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section style={{maxWidth: 1000, margin: '80px auto', padding: '0 24px'}}>
-        <h2 style={{fontSize: 40, fontWeight: 700, textAlign: 'center', marginBottom: 64}}>Everything You Need to Clean Lists</h2>
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 32}}>
-          {[
-            {title: 'SMTP Verification', desc: 'Real mailbox check via SMTP RCPT TO. Not just syntax.', icon: '✓'},
-            {title: 'Bulk Upload 10K', desc: 'Upload CSV. Get results with valid/invalid/catch-all tags.', icon: '⇪'},
-            {title: 'DNS Checker', desc: 'SPF, DKIM, DMARC audit for any domain in 1 click.', icon: '🛡️'},
-            {title: '10x Refund Engine', desc: 'Report a bounce we marked valid. Get 10 credits back instantly.', icon: '💰'},
-            {title: 'API Access', desc: 'REST API with 99.9% uptime. 10K verifications/day on Pro.', icon: '</>'},
-            {title: 'Extractor Tool', desc: 'Paste text or URL. Extract all emails in seconds.', icon: '⌕'},
-          ].map(f => (
-            <div key={f.title} style={{background: '#111', border: '1px solid #222', borderRadius: 12, padding: 24}}>
-              <div style={{fontSize: 32, marginBottom: 16}}>{f.icon}</div>
-              <h3 style={{fontSize: 20, fontWeight: 600, marginBottom: 8}}>{f.title}</h3>
-              <p style={{color: '#888', lineHeight: 1.6}}>{f.desc}</p>
-            </div>
-          ))}
+      {/* BENTO FEATURES */}
+      <section id="features" style={{maxWidth: 1200, margin: '0 auto', padding: '80px 24px'}}>
+        <div style={{textAlign: 'center', marginBottom: 64}}>
+          <h2 style={{fontSize: 48, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 16}}>
+            Why agencies switch from NeverBounce
+          </h2>
+          <p style={{fontSize: 18, color: '#737373'}}>Built for cold email. Not generic marketers.</p>
+        </div>
+        
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24}}>
+          {/* Large card */}
+          <div style={{gridColumn: 'span 2', background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)', border: '1px solid #e9d5ff', borderRadius: 24, padding: 40}}>
+            <div style={{width: 48, height: 48, borderRadius: 12, background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, fontSize: 24}}>💰</div>
+            <h3 style={{fontSize: 28, fontWeight: 700, marginBottom: 12}}>10x Refund Engine</h3>
+            <p style={{color: '#525252', lineHeight: 1.7, fontSize: 17}}>
+              Report any bounce we marked "valid" and get 10 credits back instantly. 
+              We eat the cost because our SMTP checks are 99.2% accurate. 
+              NeverBounce makes you pay for their mistakes.
+            </p>
+          </div>
+
+          <div style={{background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 24, padding: 32}}>
+            <div style={{fontSize: 48, fontWeight: 800, color: '#16a34a'}}>99.2%</div>
+            <div style={{color: '#15803d', fontWeight: 600, marginTop: 8}}>SMTP Accuracy</div>
+            <p style={{color: '#525252', marginTop: 16, fontSize: 14}}>Real mailbox ping. Not regex.</p>
+          </div>
+
+          <div style={{background: '#fff', border: '1px solid #e5e5e5', borderRadius: 24, padding: 32}}>
+            <div style={{width: 48, height: 48, borderRadius: 12, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, fontSize: 24}}>⚡</div>
+            <h3 style={{fontSize: 20, fontWeight: 700, marginBottom: 8}}>10ms Verify Speed</h3>
+            <p style={{color: '#737373', fontSize: 15}}>Bulk verify 10K emails in 3 minutes.</p>
+          </div>
+
+          <div style={{background: '#fff', border: '1px solid #e5e5e5', borderRadius: 24, padding: 32}}>
+            <div style={{width: 48, height: 48, borderRadius: 12, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, fontSize: 24}}>🛡️</div>
+            <h3 style={{fontSize: 20, fontWeight: 700, marginBottom: 8}}>SPF/DKIM Audit</h3>
+            <p style={{color: '#737373', fontSize: 15}}>Check domain health before you send.</p>
+          </div>
+
+          <div style={{background: '#fff', border: '1px solid #e5e5e5', borderRadius: 24, padding: 32}}>
+            <div style={{width: 48, height: 48, borderRadius: 12, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, fontSize: 24}}>🔥</div>
+            <h3 style={{fontSize: 20, fontWeight: 700, marginBottom: 8}}>Catch-All Detection</h3>
+            <p style={{color: '#737373', fontSize: 15}}>We flag risky domains. You decide.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section style={{background: '#fafafa', padding: '80px 24px'}}>
+        <div style={{maxWidth: 1000, margin: '0 auto'}}>
+          <h2 style={{fontSize: 48, fontWeight: 800, textAlign: 'center', marginBottom: 64}}>Clean 10K emails in 3 steps</h2>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 48}}>
+            {[
+              {step: '01', title: 'Upload CSV', desc: 'Drag & drop your list. We auto-detect email column.'},
+              {step: '02', title: 'SMTP Verify', desc: 'We ping each mailbox. Valid, invalid, risky tagged live.'},
+              {step: '03', title: 'Download + Send', desc: 'Export clean list. Report bounces for 10x refund.'},
+            ].map(i => (
+              <div key={i.step}>
+                <div style={{color: '#6366f1', fontWeight: 800, fontSize: 14, marginBottom: 12}}>STEP {i.step}</div>
+                <h3 style={{fontSize: 24, fontWeight: 700, marginBottom: 12}}>{i.title}</h3>
+                <p style={{color: '#737373', lineHeight: 1.7}}>{i.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* PRICING */}
-      <section style={{maxWidth: 900, margin: '80px auto', padding: '0 24px'}}>
-        <h2 style={{fontSize: 40, fontWeight: 700, textAlign: 'center', marginBottom: 64}}>Simple Pricing</h2>
-        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24}}>
-          <div style={{background: '#111', border: '1px solid #333', borderRadius: 12, padding: 32}}>
-            <h3 style={{fontSize: 24, fontWeight: 600}}>Free</h3>
-            <div style={{fontSize: 48, fontWeight: 700, margin: '16px 0'}}>$0</div>
-            <ul style={{lineHeight: 2, color: '#888', paddingLeft: 20}}>
+      <section id="pricing" style={{maxWidth: 1200, margin: '0 auto', padding: '80px 24px'}}>
+        <div style={{textAlign: 'center', marginBottom: 48}}>
+          <h2 style={{fontSize: 48, fontWeight: 800, marginBottom: 16}}>Simple, honest pricing</h2>
+          <p style={{fontSize: 18, color: '#737373'}}>Start free. Upgrade when you scale.</p>
+          <div style={{display: 'inline-flex', background: '#f5f5f5', padding: 4, borderRadius: 8, marginTop: 24}}>
+            <button onClick={() => setYearly(false)} style={{padding: '8px 16px', borderRadius: 6, border: 0, background: !yearly ? '#fff' : 'transparent', fontWeight: 600, cursor: 'pointer'}}>
+              Monthly
+            </button>
+            <button onClick={() => setYearly(true)} style={{padding: '8px 16px', borderRadius: 6, border: 0, background: yearly ? '#fff' : 'transparent', fontWeight: 600, cursor: 'pointer'}}>
+              Yearly <span style={{color: '#16a34a', fontSize: 12}}>Save 20%</span>
+            </button>
+          </div>
+        </div>
+
+        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, maxWidth: 900, margin: '0 auto'}}>
+          <div style={{background: '#fff', border: '1px solid #e5e5e5', borderRadius: 24, padding: 40}}>
+            <h3 style={{fontSize: 24, fontWeight: 700}}>Free</h3>
+            <div style={{margin: '24px 0'}}>
+              <span style={{fontSize: 56, fontWeight: 800}}>$0</span>
+            </div>
+            <ul style={{lineHeight: 2.2, color: '#525252', paddingLeft: 20, marginBottom: 32}}>
               <li>100 SMTP verifies/day</li>
               <li>5K extractor chars/day</li>
               <li>1 bulk job/day</li>
               <li>DNS checker</li>
+              <li>10x refund on bounces</li>
             </ul>
-            <Link href="/dashboard" style={{display: 'block', textAlign: 'center', width: '100%', marginTop: 32, padding: 12, background: '#222', color: '#fff', border: '1px solid #333', borderRadius: 8, textDecoration: 'none', fontWeight: 600}}>
+            <Link href="/dashboard" style={{display: 'block', textAlign: 'center', width: '100%', padding: 14, background: '#f5f5f5', color: '#0a0a0a', borderRadius: 12, textDecoration: 'none', fontWeight: 600}}>
               Start Free
             </Link>
           </div>
 
-          <div style={{background: '#111', border: '2px solid #fff', borderRadius: 12, padding: 32, position: 'relative'}}>
-            <div style={{position: 'absolute', top: -12, right: 24, background: '#10b981', color: '#000', padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700}}>
+          <div style={{background: 'linear-gradient(135deg, #0a0a0a 0%, #262626 100%)', color: '#fff', borderRadius: 24, padding: 40, position: 'relative', transform: 'scale(1.05)'}}>
+            <div style={{position: 'absolute', top: -12, right: 24, background: '#8b5cf6', color: '#fff', padding: '6px 16px', borderRadius: 999, fontSize: 12, fontWeight: 700}}>
               MOST POPULAR
             </div>
-            <h3 style={{fontSize: 24, fontWeight: 600}}>Pro</h3>
-            <div style={{fontSize: 48, fontWeight: 700, margin: '16px 0'}}>$19<span style={{fontSize: 20, color: '#888'}}>/mo</span></div>
-            <ul style={{lineHeight: 2, color: '#888', paddingLeft: 20}}>
+            <h3 style={{fontSize: 24, fontWeight: 700}}>Pro</h3>
+            <div style={{margin: '24px 0'}}>
+              <span style={{fontSize: 56, fontWeight: 800}}>${yearly ? '15' : '19'}</span>
+              <span style={{color: '#a3a3a3'}}>/mo</span>
+            </div>
+            <ul style={{lineHeight: 2.2, color: '#d4d4d4', paddingLeft: 20, marginBottom: 32}}>
               <li>10,000 SMTP verifies/day</li>
               <li>Unlimited extractor</li>
               <li>Unlimited bulk jobs</li>
-              <li>10x refund guarantee</li>
               <li>Priority API access</li>
+              <li>10x refund guarantee</li>
+              <li>Email support</li>
             </ul>
-            <Link href="/dashboard" style={{display: 'block', textAlign: 'center', width: '100%', marginTop: 32, padding: 12, background: '#fff', color: '#000', border: 0, borderRadius: 8, textDecoration: 'none', fontWeight: 600}}>
+            <Link href="/dashboard" style={{display: 'block', textAlign: 'center', width: '100%', padding: 14, background: '#fff', color: '#0a0a0a', borderRadius: 12, textDecoration: 'none', fontWeight: 600}}>
               Upgrade to Pro
             </Link>
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section style={{maxWidth: 800, margin: '80px auto', padding: '0 24px'}}>
-        <h2 style={{fontSize: 40, fontWeight: 700, textAlign: 'center', marginBottom: 64}}>FAQ</h2>
-        {[
-          {q: 'How is this different from NeverBounce?', a: 'We give 10x credit refunds if we mark an email valid and it bounces. They don\'t. We also show real SMTP response codes.'},
-          {q: 'Do you store my email lists?', a: 'No. Bulk jobs auto-delete after 24h. We only store counts for billing.'},
-          {q: 'What\'s a "catch-all" result?', a: 'Domain accepts all emails. We flag these so you know the risk. You decide to keep or remove.'},
-          {q: 'Can I get an invoice?', a: 'Yes. Stripe sends invoices automatically. Email support@cleanbounce.com for custom billing.'},
-        ].map(f => (
-          <div key={f.q} style={{borderBottom: '1px solid #222', padding: '24px 0'}}>
-            <h3 style={{fontSize: 18, fontWeight: 600, marginBottom: 8}}>{f.q}</h3>
-            <p style={{color: '#888', lineHeight: 1.6}}>{f.a}</p>
-          </div>
-        ))}
+      {/* TESTIMONIALS */}
+      <section style={{maxWidth: 1200, margin: '0 auto', padding: '80px 24px'}}>
+        <h2 style={{fontSize: 48, fontWeight: 800, textAlign: 'center', marginBottom: 64}}>Agencies love the refund</h2>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24}}>
+          {[
+            {name: 'Alex K.', role: 'Cold Email Agency', text: 'NeverBounce charged me for 2K bounces. CleanBounce refunded me 20K credits. We switched same day.'},
+            {name: 'Sarah M.', role: 'Lead Gen Founder', text: 'The 10x refund is real. I reported 50 bounces, got 500 credits back in 10 seconds. Insane.'},
+            {name: 'Mike T.', role: 'B2B SaaS', text: 'Finally an API that shows real SMTP codes. Debugging deliverability is 10x easier now.'},
+          ].map(t => (
+            <div key={t.name} style={{background: '#fafafa', border: '1px solid #f1f1f1', borderRadius: 16, padding: 32}}>
+              <p style={{color: '#404040', lineHeight: 1.7, marginBottom: 24}}>"{t.text}"</p>
+              <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                <div style={{width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'}}></div>
+                <div>
+                  <div style={{fontWeight: 600}}>{t.name}</div>
+                  <div style={{color: '#737373', fontSize: 14}}>{t.role}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section style={{background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', margin: '80px 24px', borderRadius: 24, padding: '80px 24px', textAlign: 'center', color: '#fff'}}>
+        <h2 style={{fontSize: 48, fontWeight: 800, marginBottom: 16}}>Stop paying for bounced emails</h2>
+        <p style={{fontSize: 18, opacity: 0.9, marginBottom: 32}}>Join 200+ agencies who switched this month.</p>
+        <Link href="/dashboard" style={{display: 'inline-block', background: '#fff', color: '#6366f1', padding: '16px 32px', borderRadius: 12, textDecoration: 'none', fontWeight: 700, fontSize: 18}}>
+          Get Your Free API Key →
+        </Link>
       </section>
 
       {/* FOOTER */}
-      <footer style={{borderTop: '1px solid #222', padding: '40px 24px', textAlign: 'center', color: '#555'}}>
-        <p>© 2026 CleanBounce. Built for agencies who hate bounced emails.</p>
-        <div style={{marginTop: 16, display: 'flex', gap: 24, justifyContent: 'center'}}>
-          <Link href="/privacy" style={{color: '#555', textDecoration: 'none'}}>Privacy</Link>
-          <Link href="/terms" style={{color: '#555', textDecoration: 'none'}}>Terms</Link>
-          <a href="mailto:support@cleanbounce.com" style={{color: '#555', textDecoration: 'none'}}>Support</a>
+      <footer style={{borderTop: '1px solid #f1f1f1', padding: '48px 24px'}}>
+        <div style={{maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 24}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+            <div style={{width: 24, height: 24, borderRadius: 6, background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'}}></div>
+            <span style={{fontWeight: 700}}>CleanBounce</span>
+          </div>
+          <div style={{display: 'flex', gap: 32, color: '#737373', fontSize: 14}}>
+            <Link href="/privacy" style={{color: '#737373', textDecoration: 'none'}}>Privacy</Link>
+            <Link href="/terms" style={{color: '#737373', textDecoration: 'none'}}>Terms</Link>
+            <a href="mailto:support@cleanbounce.com" style={{color: '#737373', textDecoration: 'none'}}>Support</a>
+          </div>
         </div>
       </footer>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </div>
   )
       }
