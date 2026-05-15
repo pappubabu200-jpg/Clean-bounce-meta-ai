@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/pappubabu200-jpg/Clean-bounce-meta-ai/api/internal/smtp"
 	"context"
 	"log"
 	"net/http"
@@ -155,4 +156,42 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+func cleanHandler(c *gin.Context) {
+	var req CleanReq
+	if err := c.BindJSON(&req); err!= nil {
+		c.JSON(400, gin.H{"error": "invalid json"})
+		return
+	}
+
+	ip := c.ClientIP()
+	key := "rl:clean:" + ip
+	ctx := context.Background()
+	
+	count, _ := rdb.Get(ctx, key).Int()
+	if count+len(req.Emails) > 100 { // Pro: 100 full verifies/day free
+		c.JSON(429, gin.H{"error": "Daily limit 100 full verifications exceeded"})
+		return
+	}
+	rdb.IncrBy(ctx, key, int64(len(req.Emails)))
+	rdb.Expire(ctx, key, 24*time.Hour)
+
+	results := []smtp.Result{}
+	validCount := 0
+	
+	for _, e := range req.Emails {
+		res := smtp.Verify(e)
+		results = append(results, res)
+		if res.Valid {
+			validCount++
+		}
+		time.Sleep(100 * time.Millisecond) // Don't hammer servers
+	}
+
+	c.JSON(200, gin.H{
+		"total": len(req.Emails),
+		"valid": validCount,
+		"invalid": len(req.Emails) - validCount,
+		"results": results[:min(20, len(results))], // Show first 20
+	})
 }
