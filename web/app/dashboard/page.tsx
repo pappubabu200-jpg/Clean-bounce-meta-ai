@@ -59,3 +59,70 @@ export default function Dashboard() {
     </div>
   )
 }
+// web/app/dashboard/page.tsx
+'use client'
+import { useState } from 'react'
+
+export default function Dashboard() {
+  const [email, setEmail] = useState('')
+  const [msg, setMsg] = useState('')
+
+  const handleReport = async () => {
+    const res = await fetch('/api/report-bounce', {
+      method: 'POST',
+      body: JSON.stringify({ email, userId: 'user123' })
+    })
+    const data = await res.json()
+    setMsg(data.success ? `Refunded ${data.refunded} credits` : 'No matching verification found')
+  }
+
+  return (
+    <div style={{maxWidth: 600, margin: '40px auto', padding: 20}}>
+      <h1>10x Refund Engine</h1>
+      <p>If we marked an email "valid" and it bounced, we pay 10x credits.</p>
+      <input 
+        value={email} 
+        onChange={e => setEmail(e.target.value)} 
+        placeholder="bounced@email.com"
+        style={{width: '100%', padding: 12, marginBottom: 12, borderRadius: 8, border: '1px solid #e5e5e5'}}
+      />
+      <button onClick={handleReport} style={{padding: '12px 24px', background: '#dc2626', color: '#fff', border: 0, borderRadius: 8, fontWeight: 700}}>
+        Report Bounce
+      </button>
+      {msg && <div style={{marginTop: 16, padding: 16, background: '#f0fdf4', borderRadius: 8}}>{msg}</div>}
+    </div>
+  )
+            }// web/app/dashboard/page.tsx
+'use client'
+import { useState } from 'react'
+
+export default function Dashboard() {
+  const [email, setEmail] = useState('')
+  const [msg, setMsg] = useState('')
+
+  const handleReport = async () => {
+    const res = await fetch('/api/report-bounce', {
+      method: 'POST',
+      body: JSON.stringify({ email, userId: 'user123' })
+    })
+    const data = await res.json()
+    setMsg(data.success ? `Refunded ${data.refunded} credits` : 'No matching verification found')
+  }
+
+  return (
+    <div style={{maxWidth: 600, margin: '40px auto', padding: 20}}>
+      <h1>10x Refund Engine</h1>
+      <p>If we marked an email "valid" and it bounced, we pay 10x credits.</p>
+      <input 
+        value={email} 
+        onChange={e => setEmail(e.target.value)} 
+        placeholder="bounced@email.com"
+        style={{width: '100%', padding: 12, marginBottom: 12, borderRadius: 8, border: '1px solid #e5e5e5'}}
+      />
+      <button onClick={handleReport} style={{padding: '12px 24px', background: '#dc2626', color: '#fff', border: 0, borderRadius: 8, fontWeight: 700}}>
+        Report Bounce
+      </button>
+      {msg && <div style={{marginTop: 16, padding: 16, background: '#f0fdf4', borderRadius: 8}}>{msg}</div>}
+    </div>
+  )
+      }
