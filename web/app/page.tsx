@@ -1,129 +1,300 @@
 'use client'
-import { useState } from 'react'
-import { Upload, FileText, Download, AlertCircle } from 'lucide-react'
 
-export default function BulkVerifier() {
-  const [file, setFile] = useState<File | null>(null)
-  const [jobId, setJobId] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
-  const [error, setError] = useState('')
+import { useState, useEffect } from 'react'
 
-  const handleUpload = async () => {
-    if (!file) return
-    setLoading(true)
-    setError('')
-    setResult(null)
+type Usage = {
+  clean_used: number
+  clean_limit: number
+  extract_used: number
+  extract_limit: number
+}
 
-    const formData = new FormData()
-    formData.append('file', file)
+export default function Dashboard() {
+  const [apiKey, setApiKey] = useState('')
+  const [usage, setUsage] = useState<Usage | null>(null)
 
+  const [email, setEmail] = useState('')
+  const [bounceEmail, setBounceEmail] = useState('')
+  const [msg, setMsg] = useState('')
+
+  const API_URL =
+    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+
+  // Load API key from localStorage safely
+  useEffect(() => {
+    const key = localStorage.getItem('api_key') || ''
+    setApiKey(key)
+  }, [])
+
+  // Fetch usage
+  useEffect(() => {
+    if (!apiKey) return
+
+    fetch(`${API_URL}/api/usage`, {
+      headers: {
+        'X-API-Key': apiKey,
+      },
+    })
+      .then((r) => r.json())
+      .then(setUsage)
+      .catch(console.error)
+  }, [apiKey, API_URL])
+
+  // Signup / Generate API key
+  async function signup() {
     try {
-      const res = await fetch('/api/bulk/upload', {
+      const form = new FormData()
+      form.append('email', email)
+
+      const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: 'POST',
-        body: formData
+        body: form,
       })
+
       const data = await res.json()
-      
-      if (data.error) {
-        setError(data.error)
-      } else {
-        setJobId(data.jobId)
-        pollStatus(data.jobId)
+
+      if (!data.api_key) {
+        setMsg('Failed to generate API key')
+        return
       }
-    } catch (e) {
-      setError('Upload failed')
+
+      setApiKey(data.api_key)
+      localStorage.setItem('api_key', data.api_key)
+    } catch (err) {
+      console.error(err)
+      setMsg('Signup failed')
     }
-    setLoading(false)
   }
 
-  const pollStatus = async (id: string) => {
-    const interval = setInterval(async () => {
-      const res = await fetch(`/api/bulk/status?jobId=${id}`)
+  // Report bounce
+  async function handleReport() {
+    try {
+      const res = await fetch(`${API_URL}/api/report-bounce`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+        },
+        body: JSON.stringify({
+          email: bounceEmail,
+        }),
+      })
+
       const data = await res.json()
-      
-      if (data.status === 'done') {
-        setResult(data)
-        clearInterval(interval)
-      }
-    }, 2000)
+
+      setMsg(
+        data.success
+          ? `Refunded ${data.refunded} credits`
+          : 'No matching verification found'
+      )
+    } catch (err) {
+      console.error(err)
+      setMsg('Something went wrong')
+    }
   }
-<section className="bg-gradient-to-br from-red-50 to-orange-50 py-20 text-center">
-  <h2 className="text-4xl font-extrabold mb-4">10x Refund Guarantee</h2>
-  <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-    If we mark an email "valid" and it hard bounces, we refund 10x credits. 
-    No other email verifier does this. Because we’re that accurate.
-  </p>
-</section>
-  return (
-    <div style={{maxWidth: 800, margin: '40px auto', padding: 20}}>
-      <h1 style={{fontSize: 32, marginBottom: 8}}>Bulk Verifier – 10K Emails</h1>
-      <p style={{color: '#888', marginBottom: 24}}>Upload CSV. We verify via SMTP. Takes ~1 email/sec.</p>
 
-      <div style={{background: '#fff', border: '1px solid #e5e5e5', borderRadius: 16, padding: 32, marginBottom: 24}}>
-        <div style={{border: '2px dashed #d4d4d4', borderRadius: 12, padding: 40, textAlign: 'center', marginBottom: 16}}>
-          <Upload size={32} color="#737373" style={{margin: '0 auto 16px'}} />
-          <input 
-            type="file" 
-            accept=".csv"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            style={{display: 'none'}}
-            id="file-upload"
-          />
-          <label htmlFor="file-upload" style={{cursor: 'pointer', color: '#6366f1', fontWeight: 600}}>
-            Click to upload CSV
-          </label>
-          {file && <div style={{marginTop: 12, fontSize: 14, color: '#737373'}}>{file.name}</div>}
-        </div>
+  // Login / Signup screen
+  if (!apiKey) {
+    return (
+      <div
+        style={{
+          maxWidth: 400,
+          margin: '100px auto',
+          padding: 20,
+        }}
+      >
+        <h1>Get Free API Key</h1>
 
-        <button 
-          onClick={handleUpload}
-          disabled={!file || loading}
+        <input
+          placeholder="email@company.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           style={{
-            width: '100%', 
-            padding: '14px 24px', 
-            borderRadius: 12, 
-            background: file? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' : '#e5e5e5', 
-            color: '#fff', 
-            border: 0, 
-            fontWeight: 700, 
-            cursor: file? 'pointer' : 'not-allowed'
+            width: '100%',
+            padding: 12,
+            margin: '16px 0',
+            background: '#111',
+            color: '#fff',
+            border: '1px solid #333',
+            borderRadius: 8,
+          }}
+        />
+
+        <button
+          onClick={signup}
+          style={{
+            width: '100%',
+            padding: 12,
+            background: '#fff',
+            color: '#000',
+            border: 0,
+            borderRadius: 8,
+            fontWeight: 600,
           }}
         >
-          {loading? 'Processing...' : 'Verify Emails'}
+          Generate Key
         </button>
 
-        {error && (
-          <div style={{marginTop: 16, padding: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, display: 'flex', gap: 12}}>
-            <AlertCircle size={20} color="#dc2626" />
-            <span style={{color: '#dc2626', fontSize: 14}}>{error}</span>
+        {msg && (
+          <div style={{ marginTop: 16 }}>
+            {msg}
           </div>
         )}
       </div>
+    )
+  }
 
-      {result && (
-        <div style={{background: '#fff', border: '1px solid #e5e5e5', borderRadius: 16, padding: 32}}>
-          <h2 style={{fontSize: 24, marginBottom: 16}}>Results</h2>
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24}}>
-            <div style={{textAlign: 'center'}}>
-              <div style={{fontSize: 32, fontWeight: 800, color: '#16a34a'}}>{result.valid || 0}</div>
-              <div style={{fontSize: 14, color: '#737373'}}>Valid</div>
+  // Dashboard
+  return (
+    <div
+      style={{
+        maxWidth: 900,
+        margin: '40px auto',
+        padding: 20,
+      }}
+    >
+      <h1>Dashboard</h1>
+
+      {/* API Key Card */}
+      <div
+        style={{
+          background: '#111',
+          padding: 16,
+          borderRadius: 8,
+          marginBottom: 24,
+        }}
+      >
+        <div
+          style={{
+            color: '#888',
+            fontSize: 14,
+            marginBottom: 8,
+          }}
+        >
+          API Key
+        </div>
+
+        <code
+          style={{
+            wordBreak: 'break-all',
+          }}
+        >
+          {apiKey}
+        </code>
+      </div>
+
+      {/* Usage Cards */}
+      {usage && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 16,
+            marginBottom: 32,
+          }}
+        >
+          <div
+            style={{
+              background: '#111',
+              padding: 16,
+              borderRadius: 8,
+            }}
+          >
+            <div style={{ color: '#888' }}>
+              SMTP Verifications
             </div>
-            <div style={{textAlign: 'center'}}>
-              <div style={{fontSize: 32, fontWeight: 800, color: '#dc2626'}}>{result.invalid || 0}</div>
-              <div style={{fontSize: 14, color: '#737373'}}>Invalid</div>
-            </div>
-            <div style={{textAlign: 'center'}}>
-              <div style={{fontSize: 32, fontWeight: 800, color: '#f59e0b'}}>{result.catchAll || 0}</div>
-              <div style={{fontSize: 14, color: '#737373'}}>Catch-all</div>
+
+            <div
+              style={{
+                fontSize: 32,
+                fontWeight: 700,
+              }}
+            >
+              {usage.clean_used}/{usage.clean_limit}
             </div>
           </div>
-          <button style={{width: '100%', padding: '14px 24px', borderRadius: 12, background: '#16a34a', color: '#fff', border: 0, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8}}>
-            <Download size={18} />
-            Download Clean CSV
-          </button>
+
+          <div
+            style={{
+              background: '#111',
+              padding: 16,
+              borderRadius: 8,
+            }}
+          >
+            <div style={{ color: '#888' }}>
+              Extractor Chars
+            </div>
+
+            <div
+              style={{
+                fontSize: 32,
+                fontWeight: 700,
+              }}
+            >
+              {usage.extract_used}/{usage.extract_limit}
+            </div>
+          </div>
         </div>
       )}
+
+      {/* 10x Refund Engine */}
+      <div
+        style={{
+          background: '#fafafa',
+          padding: 24,
+          borderRadius: 12,
+          border: '1px solid #e5e5e5',
+        }}
+      >
+        <h2>10x Refund Engine</h2>
+
+        <p>
+          If we marked an email as valid and it bounced,
+          we refund 10x credits.
+        </p>
+
+        <input
+          value={bounceEmail}
+          onChange={(e) => setBounceEmail(e.target.value)}
+          placeholder="bounced@email.com"
+          style={{
+            width: '100%',
+            padding: 12,
+            marginTop: 12,
+            marginBottom: 12,
+            borderRadius: 8,
+            border: '1px solid #d4d4d4',
+          }}
+        />
+
+        <button
+          onClick={handleReport}
+          style={{
+            padding: '12px 24px',
+            background: '#dc2626',
+            color: '#fff',
+            border: 0,
+            borderRadius: 8,
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          Report Bounce
+        </button>
+
+        {msg && (
+          <div
+            style={{
+              marginTop: 16,
+              padding: 16,
+              background: '#f0fdf4',
+              borderRadius: 8,
+            }}
+          >
+            {msg}
+          </div>
+        )}
+      </div>
     </div>
   )
-            }
+      }
