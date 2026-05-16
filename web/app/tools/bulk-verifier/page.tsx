@@ -1,104 +1,138 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { Upload, FileText, Download, AlertCircle, Shield } from 'lucide-react'
 
 export default function BulkVerifier() {
   const [file, setFile] = useState<File | null>(null)
   const [jobId, setJobId] = useState('')
-  const [status, setStatus] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<any>(null)
+  const [error, setError] = useState('')
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
-
-  async function upload() {
+  const handleUpload = async () => {
     if (!file) return
     setLoading(true)
-    const form = new FormData()
-    form.append('file', file)
+    setError('')
+    setResult(null)
 
-    const res = await fetch(`${API_URL}/api/bulk/upload`, {
-      method: 'POST',
-      body: form
-    })
-    const data = await res.json()
-    setJobId(data.job_id)
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const res = await fetch('/api/bulk/upload', {
+        method: 'POST',
+        body: formData
+      })
+      const data = await res.json()
+
+      if (data.error) {
+        setError(data.error)
+      } else {
+        setJobId(data.jobId)
+        pollStatus(data.jobId)
+      }
+    } catch (e) {
+      setError('Upload failed')
+    }
     setLoading(false)
   }
 
-  useEffect(() => {
-    if (!jobId) return
+  const pollStatus = async (id: string) => {
     const interval = setInterval(async () => {
-      const res = await fetch(`${API_URL}/api/bulk/status/${jobId}`)
+      const res = await fetch(`/api/bulk/status?jobId=${id}`)
       const data = await res.json()
-      setStatus(data)
-      if (data.status === 'done') clearInterval(interval)
+
+      if (data.status === 'done') {
+        setResult(data)
+        clearInterval(interval)
+      }
     }, 2000)
-    return () => clearInterval(interval)
-  }, [jobId])
+  }
 
   return (
-    <div style={{maxWidth: 800, margin: '40px auto', padding: 20}}>
-      <h1 style={{fontSize: 32, marginBottom: 8}}>Bulk Verifier – 10K Emails</h1>
-      <p style={{color: '#888', marginBottom: 24}}>Upload CSV. We verify via SMTP. Takes ~1 email/sec.</p>
+    <div>
+      {/* 10x Refund Banner - moved inside return */}
+      <section className="bg-gradient-to-br from-red-50 to-orange-50 py-12 text-center mb-8">
+        <div className="max-w-2xl mx-auto px-4">
+          <Shield size={32} className="mx-auto mb-4 text-red-600" />
+          <h2 className="text-3xl font-extrabold mb-3">10x Refund Guarantee</h2>
+          <p className="text-lg text-gray-600">
+            If we mark an email "valid" and it hard bounces, we refund 10x credits.
+            No other email verifier does this.
+          </p>
+        </div>
+      </section>
 
-      <input
-        type="file"
-        accept=".csv"
-        onChange={e => setFile(e.target.files?.[0] || null)}
-        style={{width: '100%', background: '#111', color: '#fff', border: '1px solid #333', borderRadius: 8, padding: 12}}
-      />
+      {/* Main Bulk Verifier Tool */}
+      <div style={{maxWidth: 800, margin: '0 auto', padding: 20}}>
+        <h1 style={{fontSize: 32, marginBottom: 8}}>Bulk Verifier – 10K Emails</h1>
+        <p style={{color: '#888', marginBottom: 24}}>Upload CSV. We verify via SMTP. Takes ~1 email/sec.</p>
 
-      <button
-        onClick={upload}
-        disabled={loading ||!file}
-        style={{width: '100%', marginTop: 16, padding: 14, background: '#fff', color: '#000', border: 0, borderRadius: 8, fontSize: 16, fontWeight: 600}}
-      >
-        {loading? 'Uploading...' : 'Start Verification'}
-      </button>
+        <div style={{background: '#fff', border: '1px solid #e5e5e5', borderRadius: 16, padding: 32, marginBottom: 24}}>
+          <div style={{border: '2px dashed #d4d4d4', borderRadius: 12, padding: 40, textAlign: 'center', marginBottom: 16}}>
+            <Upload size={32} color="#737373" style={{margin: '0 auto 16px'}} />
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              style={{display: 'none'}}
+              id="file-upload"
+            />
+            <label htmlFor="file-upload" style={{cursor: 'pointer', color: '#6366f1', fontWeight: 600}}>
+              Click to upload CSV
+            </label>
+            {file && <div style={{marginTop: 12, fontSize: 14, color: '#737373'}}>{file.name}</div>}
+          </div>
 
-      {status && (
-        <div style={{marginTop: 24, background: '#111', border: '1px solid #333', borderRadius: 8, padding: 16}}>
-          <div>Status: {status.status}</div>
-          <div>Progress: {status.processed}/{status.total}</div>
-          <div>Valid: {status.valid || 0}</div>
+          <button
+            onClick={handleUpload}
+            disabled={!file || loading}
+            style={{
+              width: '100%',
+              padding: '14px 24px',
+              borderRadius: 12,
+              background: file? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' : '#e5e5e5',
+              color: '#fff',
+              border: 0,
+              fontWeight: 700,
+              cursor: file? 'pointer' : 'not-allowed'
+            }}
+          >
+            {loading? 'Processing...' : 'Verify Emails'}
+          </button>
 
-          {status.status === 'done' && (
-  <div style={{display: 'flex', gap: 12, marginTop: 12}}>
-    <a
-      href={`${API_URL}/api/bulk/download/${jobId}`}
-      style={{background: '#10b981', color: '#000', padding: '8px 16px', borderRadius: 6, textDecoration: 'none', fontWeight: 600}}
-    >
-      Download Results CSV
-    </a>
-    
-    <button onClick={() => {
-      const email = prompt('Which email bounced after sending?')
-      if (!email) return
-      fetch(`${API_URL}/api/report/bounce`, {
-        method: 'POST',
-        headers: {
-          'X-API-Key': localStorage.getItem('api_key') || '',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({email, job_id: jobId})
-      })
-      .then(r => r.json())
-      .then(d => {
-        if (d.refunded) {
-          alert(`Refunded ${d.refunded} credits. We marked it valid but it bounced.`)
-        } else {
-          alert(d.error || 'Could not refund. Email was not marked valid by us.')
-        }
-      })
-    }}
-    style={{background: '#f43f5e', color: '#fff', border: 0, padding: '8px 16px', borderRadius: 6, fontWeight: 600, cursor: 'pointer'}}>
-      Report Bounce – Get 10x Refund
-    </button>
-  </div>
-)}
-            </a>
+          {error && (
+            <div style={{marginTop: 16, padding: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, display: 'flex', gap: 12}}>
+              <AlertCircle size={20} color="#dc2626" />
+              <span style={{color: '#dc2626', fontSize: 14}}>{error}</span>
+            </div>
           )}
         </div>
-      )}
+
+        {result && (
+          <div style={{background: '#fff', border: '1px solid #e5e5e5', borderRadius: 16, padding: 32}}>
+            <h2 style={{fontSize: 24, marginBottom: 16}}>Results</h2>
+            <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24}}>
+              <div style={{textAlign: 'center'}}>
+                <div style={{fontSize: 32, fontWeight: 800, color: '#16a34a'}}>{result.valid || 0}</div>
+                <div style={{fontSize: 14, color: '#737373'}}>Valid</div>
+              </div>
+              <div style={{textAlign: 'center'}}>
+                <div style={{fontSize: 32, fontWeight: 800, color: '#dc2626'}}>{result.invalid || 0}</div>
+                <div style={{fontSize: 14, color: '#737373'}}>Invalid</div>
+              </div>
+              <div style={{textAlign: 'center'}}>
+                <div style={{fontSize: 32, fontWeight: 800, color: '#f59e0b'}}>{result.catchAll || 0}</div>
+                <div style={{fontSize: 14, color: '#737373'}}>Catch-all</div>
+              </div>
+            </div>
+            <button style={{width: '100%', padding: '14px 24px', borderRadius: 12, background: '#16a34a', color: '#fff', border: 0, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8}}>
+              <Download size={18} />
+              Download Clean CSV
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
-        }
+            }
