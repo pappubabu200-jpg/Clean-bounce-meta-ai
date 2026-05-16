@@ -48,7 +48,13 @@ export default function BulkVerifier() {
       }
     }, 2000)
   }
-
+<section className="bg-gradient-to-br from-red-50 to-orange-50 py-20 text-center">
+  <h2 className="text-4xl font-extrabold mb-4">10x Refund Guarantee</h2>
+  <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+    If we mark an email "valid" and it hard bounces, we refund 10x credits. 
+    No other email verifier does this. Because we’re that accurate.
+  </p>
+</section>
   return (
     <div style={{maxWidth: 800, margin: '40px auto', padding: 20}}>
       <h1 style={{fontSize: 32, marginBottom: 8}}>Bulk Verifier – 10K Emails</h1>
